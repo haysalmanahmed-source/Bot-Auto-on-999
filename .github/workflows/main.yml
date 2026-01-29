@@ -1,0 +1,19 @@
+name: Auto Start Server
+on:
+  schedule:
+    - cron: '*/20 * * * *' # প্রতি ২০ মিনিট পর পর চলবে
+  workflow_dispatch:
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Selenium
+        run: pip install selenium webdriver-manager
+      - name: Start Bot
+        run: python bot.py
+        
