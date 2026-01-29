@@ -9,64 +9,74 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# আপনার তথ্য
+# আপনার সঠিক তথ্য
 EMAIL = "hay.salman.ahmed@gmail.com"
 PASSWORD = "Salman890@#"
-# সরাসরি হোম পেজ থেকে লগইন করার চেষ্টা
-LOGIN_URL = "https://wispbyte.com/client" 
+LOGIN_URL = "https://wispbyte.com/client/auth/login"
 SERVER_URL = "https://wispbyte.com/client/servers/a40bf993/console"
 
 def run_bot():
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless') # গিটহাবের জন্য এটি জরুরি
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+    
+    # Cloudflare শনাক্তকরণ এড়াতে এই বিশেষ User-Agent টি জরুরি
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    wait = WebDriverWait(driver, 45)
+    
+    # বট লুকানোর অ্যাডভান্সড স্ক্রিপ্ট
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "const newProto = navigator.__proto__; delete newProto.webdriver; navigator.__proto__ = newProto;"
+    })
+
+    wait = WebDriverWait(driver, 60)
 
     try:
-        print("লগইন পেজ ওপেন করা হচ্ছে...")
+        print("লগইন পেজে যাওয়া হচ্ছে...")
         driver.get(LOGIN_URL)
-        time.sleep(7)
+        time.sleep(10) # Cloudflare লোড হওয়ার জন্য সময়
 
-        # যদি সরাসরি ইউজারনেম বক্স না পায়, তবে পুনরায় পেজ লোড করবে
-        try:
-            username_field = wait.until(EC.presence_of_element_located((By.NAME, "username")))
-            print("লগইন বক্স পাওয়া গেছে। তথ্য দেওয়া হচ্ছে...")
-            username_field.send_keys(EMAIL)
-            driver.find_element(By.NAME, "password").send_keys(PASSWORD)
-            
-            login_btn = driver.find_element(By.XPATH, "//button[@type='submit']")
-            driver.execute_script("arguments[0].click();", login_btn)
-            print("লগইন বাটনে ক্লিক করা হয়েছে।")
-        except:
-            print("লগইন বক্স পাওয়া যায়নি। হয়তো আপনি অলরেডি লগইন অবস্থায় আছেন।")
-
-        time.sleep(15) # ড্যাশবোর্ড লোড হওয়ার পর্যাপ্ত সময়
+        # ইউজারনেম ও পাসওয়ার্ড ইনপুট
+        print("তথ্য দেওয়া হচ্ছে...")
+        wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(EMAIL)
+        driver.find_element(By.NAME, "password").send_keys(PASSWORD)
         
-        print("সার্ভার কনসোলে যাওয়া হচ্ছে...")
+        # লগইন বাটনে ক্লিক (ভিডিও অনুযায়ী সরাসরি ক্লিক)
+        login_btn = driver.find_element(By.XPATH, "//button[@type='submit']")
+        driver.execute_script("arguments[0].click();", login_btn)
+        
+        print("ড্যাশবোর্ড লোড হওয়ার জন্য অপেক্ষা...")
+        time.sleep(20) 
+        
+        # সরাসরি কনসোলে চলে যাওয়া
+        print(f"সার্ভার কনসোলে যাওয়া হচ্ছে: {SERVER_URL}")
         driver.get(SERVER_URL)
         time.sleep(15) 
 
-        # প্লে বাটন খোঁজার চেষ্টা
-        print("প্লে (Start) বাটন ক্লিক করার চেষ্টা করা হচ্ছে...")
+        # আপনার ভিডিওতে দেখা 'Play' বাটনটি ক্লিক করা
+        print("প্লে (Start) বাটনে ক্লিক করার চেষ্টা করা হচ্ছে...")
+        
+        # ভিডিও অনুযায়ী প্লে আইকনওয়ালা বাটন খুঁজে ক্লিক করার জন্য নিখুঁত জাভাস্ক্রিপ্ট
         try:
-            # স্ক্রিনশট অনুযায়ী প্লে আইকন ক্লিক
-            driver.execute_script("document.querySelector('button i.fa-play, button i.play').parentElement.click();")
-            print("✅ SUCCESS: Play button clicked!")
+            # এটি আপনার কনসোলের প্রথম প্লে আইকনওয়ালা বাটনটি খুঁজে ক্লিক করবে
+            driver.execute_script("document.querySelector('button .fa-play').parentElement.click();")
+            print("✅ সফল: প্লে বাটনে ক্লিক করা হয়েছে!")
         except Exception as e:
-            # বিকল্প পদ্ধতি
-            start_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//i[contains(@class, 'play')]]")))
+            print("বিকল্প পদ্ধতিতে খোঁজা হচ্ছে...")
+            # যদি আইকন দিয়ে কাজ না হয়, তবে ক্লাসের নাম দিয়ে ক্লিক করবে
+            start_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'btn-primary') or contains(@class, 'btn-success')]")))
             driver.execute_script("arguments[0].click();", start_btn)
-            print("✅ SUCCESS: Play button clicked via XPath!")
+            print("✅ সফল: বিকল্প পদ্ধতিতে ক্লিক করা হয়েছে!")
 
     except Exception as e:
-        print(f"❌ এরর হয়েছে: {e}")
-        driver.save_screenshot("login_issue.png")
+        print(f"❌ ভুল হয়েছে: {e}")
+        driver.save_screenshot("debug_screen.png") # সমস্যা হলে ছবি তুলে রাখবে
     finally:
         driver.quit()
 
